@@ -29,15 +29,15 @@ def extract_hq(indir: str, outdir: str):
         .select(
             pl.col("code").str.slice(0, 6).cast(pl.UInt32),
             "dt",
-            (pl.col("preclose") * 1e4).cast(pl.UInt32),
-            (pl.col("open") * 1e4).cast(pl.UInt32),
-            (pl.col("high") * 1e4).cast(pl.UInt32),
-            (pl.col("low") * 1e4).cast(pl.UInt32),
-            (pl.col("close") * 1e4).cast(pl.UInt32),
+            (pl.col("preclose") * 1e4).round(0).cast(pl.UInt32),
+            (pl.col("open") * 1e4).round(0).cast(pl.UInt32),
+            (pl.col("high") * 1e4).round(0).cast(pl.UInt32),
+            (pl.col("low") * 1e4).round(0).cast(pl.UInt32),
+            (pl.col("close") * 1e4).round(0).cast(pl.UInt32),
             pl.col("volume").fill_null(0).cast(pl.UInt64),
-            (pl.col("amount") * 1e4).fill_null(0).cast(pl.UInt64),
+            (pl.col("amount") * 1e4).round(0).fill_null(0).cast(pl.UInt64),
             "turnover",
-            (pl.col("netvalue") * 1e4).cast(pl.UInt32),
+            (pl.col("netvalue") * 1e4).round(0).cast(pl.UInt32),
         )
         .collect()
     )
