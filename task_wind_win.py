@@ -43,6 +43,7 @@ def process_data(data) -> pl.DataFrame:
             },
         )
         .fill_nan(None)
+        .filter(pl.col("open").is_not_null())
         .select(
             pl.col("code").str.slice(0, 6).cast(pl.UInt32),
             "dt",
