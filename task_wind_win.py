@@ -1,10 +1,26 @@
-import datetime as dt
 import os
+import datetime as dt
+import logging
 import polars as pl
 from WindPy import w
+from utils import chatbot
+
+
+def get_logger(name: str, level=logging.DEBUG, fmt="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s"):
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    os.makedirs("log", exist_ok=True)
+    file_handler = logging.FileHandler(f'log/{dt.datetime.now().strftime("%Y%m%d-%H%M")}_{name}.log')
+    formatter = logging.Formatter(fmt)
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    return logger
 
 
 def wind_ready() -> bool:
+    # check wind connection 10 times
     for _ in range(10):
         w.start()
         if w.isconnected():
@@ -18,14 +34,23 @@ def get_etf_list(date_str: str) -> list[str]:
     if response.ErrorCode == 0:
         return response.Data[0]
     else:
-        print(f"WindPy error code: {response.ErrorCode}")
+        chatbot.send_msg(f"WindPy Errorcode: {response.ErrorCode} at {date_str}")
         return []
 
 
 def process_data(data) -> pl.DataFrame:
+    """
+    fields of data:
+        ErrorCode: int
+        Codes: list[str]
+        Fields: list[str]
+        Times: list[dt.datetime]
+        Data: list[list[float]]
+    """
+    length = len(data.Times)
     return (
         pl.from_records(
-            [data.Codes * 4] + [data.Times] + data.Data,
+            [data.Codes * length] + [data.Times] + data.Data,
             schema={
                 "code": pl.Utf8,
                 "dt": pl.Date,
@@ -52,8 +77,8 @@ def process_data(data) -> pl.DataFrame:
             (pl.col("high") * 1e4).round(0).cast(pl.UInt32),
             (pl.col("low") * 1e4).round(0).cast(pl.UInt32),
             (pl.col("close") * 1e4).round(0).cast(pl.UInt32),
-            pl.col("volume").cast(pl.UInt64),
-            (pl.col("amount") * 1e4).round(0).cast(pl.UInt64),
+            pl.col("volume").fill_null(0).cast(pl.UInt64),
+            (pl.col("amount") * 1e4).round(0).fill_null(0).cast(pl.UInt64),
             "turnover",
             ((pl.col("close") - pl.col("discount")) * 1e4).round(0).cast(pl.UInt32).alias("netvalue"),
             "adjfactor",
@@ -75,27 +100,30 @@ def collect_trade_days(current_dt: dt.date | dt.datetime) -> list[str]:
 
 
 def job_worker(today: dt.date | dt.datetime):
+    wind_logger = get_logger("wind")
     out_dir = "wind-etf-bar1d"
     os.makedirs(out_dir, exist_ok=True)
     today_str = today.strftime("%Y-%m-%d")
     week_days = collect_trade_days(today)
     if wind_ready():
         etf_list = get_etf_list(today_str)
-        print(f"get etf length = {len(etf_list)} at {today_str}")
+        wind_logger.info(f"etf length={len(etf_list)} at {today_str}")
         df_list = []
         for code in etf_list:
-            print("begin", code)
+            wind_logger.debug(f"begin download {code}")
             wind_data = download(code, week_days[0], week_days[-1])
             df = process_data(wind_data)
             df_list.append(df)
-            print("finish", code)
-        pl.concat(df_list).write_ipc(f"{out_dir}/{today_str}.ipc", compression="zstd")
+            wind_logger.debug(f"finish download {code}")
+
+        if len(df_list) > 0:
+            pl.concat(df_list).write_ipc(f"{out_dir}/{today_str}.ipc", compression="zstd")
 
     else:
-        print("WindPy not ready")
-        # chatbot.send_msg("WindPy not ready")
+        # print("WindPy not ready")
+        chatbot.send_msg("WindPy not ready")
 
 
 if __name__ == "__main__":
-    # job_worker(today=dt.date.today())
-    job_worker(today=dt.date(2024, 6, 15))
+    job_worker(today=dt.date.today())
+    # job_worker(today=dt.date(2024, 6, 15))
