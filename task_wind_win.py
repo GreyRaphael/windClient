@@ -105,6 +105,10 @@ def job_worker(today: dt.date | dt.datetime):
     os.makedirs(out_dir, exist_ok=True)
     today_str = today.strftime("%Y-%m-%d")
     week_days = collect_trade_days(today)
+
+    wind_logger.info(f"begin wind task {week_days[0]}~{week_days[-1]}")
+    chatbot.send_msg(f"begin wind task {week_days[0]}~{week_days[-1]}")
+
     if wind_ready():
         etf_list = get_etf_list(today_str)
         wind_logger.info(f"etf length={len(etf_list)} at {today_str}")
@@ -119,6 +123,8 @@ def job_worker(today: dt.date | dt.datetime):
         if len(df_list) > 0:
             pl.concat(df_list).write_ipc(f"{out_dir}/{today_str}.ipc", compression="zstd")
 
+        wind_logger.info(f"finish wind task {week_days[0]}~{week_days[-1]}")
+        chatbot.send_msg(f"finish wind task {week_days[0]}~{week_days[-1]}")
     else:
         # print("WindPy not ready")
         chatbot.send_msg("WindPy not ready")
