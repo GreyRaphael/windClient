@@ -25,7 +25,7 @@ def down_etf_bar1d(target_date: str):
         .filter(pl.col("opdate") == pl.col("max_opdate"))
         .select(pl.exclude(["opdate", "max_opdate"]))
         .sort(["code", "dt"])
-        .write_ipc(f"aiquant-{target_date}.ipc", compression="zstd")
+        .write_ipc(f"aiquant-bar1d-{target_date}.ipc", compression="zstd")
     )
 
 

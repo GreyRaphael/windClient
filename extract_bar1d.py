@@ -46,7 +46,7 @@ def extract_hq(indir: str, outdir: str):
     )
 
     last_dt = df.item(-1, 1)
-    df.write_ipc(f"wind-{last_dt}.ipc", compression="zstd")
+    df.write_ipc(f"wind-bar1d-{last_dt}.ipc", compression="zstd")
 
 
 if __name__ == "__main__":
