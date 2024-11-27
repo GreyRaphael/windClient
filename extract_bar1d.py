@@ -3,6 +3,7 @@ import argparse
 import os
 
 
+# 使用wind导出的时候，不要选择复权净值
 def extract_hq(indir: str, outdir: str):
     os.makedirs(outdir, exist_ok=True)
     df = (
@@ -10,6 +11,7 @@ def extract_hq(indir: str, outdir: str):
             f"{indir}/*",
             skip_rows=1,
             has_header=False,
+            encoding="utf8-lossy",
             schema={
                 "code": pl.Utf8,
                 "name": pl.Utf8,
@@ -23,7 +25,7 @@ def extract_hq(indir: str, outdir: str):
                 "amount": pl.Float64,
                 "turnover": pl.Float64,
                 "netvalue": pl.Float64,
-                "useless": pl.UInt8,
+                "useless": pl.UInt8,  # necessary
             },
         )
         .select(
@@ -39,14 +41,12 @@ def extract_hq(indir: str, outdir: str):
             "turnover",
             (pl.col("netvalue") * 1e4).round(0).cast(pl.UInt32),
         )
+        .sort(by=["code", "dt"])
         .collect()
     )
 
-    # group_by and write to file
-    for (gp_name,), gp_df in df.group_by(pl.col("dt").dt.year()):
-        out_file = f"{outdir}/{gp_name}.ipc"
-        gp_df.sort(["code", "dt"]).write_ipc(out_file, compression="zstd")
-        print(f"write to {out_file}, shape={gp_df.shape}")
+    last_dt = df.item(-1, 1)
+    df.write_ipc(f"wind-{last_dt}.ipc", compression="zstd")
 
 
 if __name__ == "__main__":
