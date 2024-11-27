@@ -30,6 +30,7 @@ def wind_ready() -> bool:
 
 def get_etf_list(date_str: str) -> list[str]:
     # get all etf list(包含未上市和退市的)
+    # 基金/内地公募基金/基金市场类/基金市场类(净值)/上市基金/ETF基金(含未成立、已到期)
     response = w.wset("sectorconstituent", f"date={date_str};sectorid=1000051239000000;field=wind_code")
     if response.ErrorCode == 0:
         return response.Data[0]
