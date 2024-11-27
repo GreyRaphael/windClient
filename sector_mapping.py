@@ -1,4 +1,6 @@
 from WindPy import w
+import argparse
+import pickle
 
 SECTORS = [
     1000009712000000,  # 规模指数ETF
@@ -26,7 +28,6 @@ def wind_ready() -> bool:
 
 
 def get_etf_list(date_str: str, sectorid: int) -> list[str]:
-    # get all etf list(包含未上市和退市的)
     response = w.wset("sectorconstituent", f"date={date_str};sectorid={sectorid};field=wind_code")
     if response.ErrorCode == 0:
         return response.Data[0]
@@ -36,9 +37,21 @@ def get_etf_list(date_str: str, sectorid: int) -> list[str]:
 
 
 def generate_map(date_str: str) -> dict:
-    mapping = {}
-    for sector in SECTORS:
-        for code in get_etf_list(date_str, sector):
-            code_int = int(code[:6])
-            mapping[code_int] = sector
-    return mapping
+    if wind_ready():
+        mapping = {}
+        for sector in SECTORS:
+            for code in get_etf_list(date_str, sector):
+                code_int = int(code[:6])
+                mapping[code_int] = sector
+        # as key is integer, json file not support that
+        output_file = f"mapping-{date_str}.pkl"
+        with open(output_file, "wb") as file:
+            pickle.dump(mapping, file)
+        print(f"dump to {output_file}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="提取万得板块映射")
+    parser.add_argument("-dt", type=str, required=True, help="目标日期 2024-11-26")
+    args = parser.parse_args()
+    generate_map(args.dt)
