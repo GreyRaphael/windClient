@@ -54,12 +54,55 @@ def send_msg(msg: str):
 def upload_file(filename: str):
     abs_cfg_file = os.path.join(os.path.dirname(__file__), "chatbot.json")
     CHATBOT_CONFIG = read_config(abs_cfg_file)
-    with open(filename, "rb") as file:
+    file = open(filename, "rb")
+    if CHATBOT_CONFIG["isProduct"] is True:
+        file_data = {
+            "ESBREQ": {
+                "HEADER": {
+                    "SERVICE_CODE": "S-001029",
+                    "VERSION": "1",
+                    "CONSUMER_CODE": "CS-SPADE-001",
+                    "PASSWORD": "10f33bbdee9249d8ba1f951e80f2924a",
+                    "MESSAGE_ID": "SPADE-EMSB-045-webhook_send",
+                    "DTSEND": "20150108011000000",
+                    "EXT1": f"1111111111{CHATBOT_CONFIG['product']['KEY']}1111111111",
+                    "EXT2": "1113111211146097ab-4d24-4533-a289-fb848ea78cca1111111111",
+                    "EXT3": "",
+                },
+                "DATA": {"media": (file.name, file, "application/octet-stream")},
+            }
+        }
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        with requests.post(CHATBOT_CONFIG["product"]["UPLOAD_URL"], json=file_data, headers=headers) as response:
+            j_data = response.json()
+        if j_data["errcode"] == 0:
+            media_id = j_data["media_id"]
+            post_data = {
+                "ESBREQ": {
+                    "HEADER": {
+                        "SERVICE_CODE": "S-001029",
+                        "VERSION": "1",
+                        "CONSUMER_CODE": "CS-SPADE-001",
+                        "PASSWORD": "10f33bbdee9249d8ba1f951e80f2924a",
+                        "MESSAGE_ID": "SPADE-EMSB-045-webhook_send",
+                        "DTSEND": "20150108011000000",
+                        "EXT1": f"1111111111{CHATBOT_CONFIG['product']['KEY']}1111111111",
+                        "EXT2": "1113111211146097ab-4d24-4533-a289-fb848ea78cca1111111111",
+                        "EXT3": "",
+                    },
+                    "DATA": {"msgtype": "file", "file": {"media_id": media_id}},
+                }
+            }
+            with requests.post(CHATBOT_CONFIG["product"]["CHATBOT_URL"], json=post_data, headers=headers) as response:
+                jData = response.json()
+            print("企业微信Response:", jData)
+        else:
+            print("upload failed")
+    else:
         file_data = {"media": (file.name, file, "application/octet-stream")}
         with requests.post(CHATBOT_CONFIG["test"]["UPLOAD_URL"], files=file_data) as response:
             j_data = response.json()
         if j_data["errcode"] == 0:
-            print("upload success")
             media_id = j_data["media_id"]
             post_data = {"msgtype": "file", "file": {"media_id": media_id}}
             with requests.post(CHATBOT_CONFIG["test"]["CHATBOT_URL"], json=post_data) as response:
@@ -67,6 +110,7 @@ def upload_file(filename: str):
             print("企业微信Response:", jData)
         else:
             print("upload failed")
+    file.close()
 
 
 if __name__ == "__main__":
