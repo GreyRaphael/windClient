@@ -130,6 +130,38 @@ def job_worker(today: dt.date | dt.datetime):
         chatbot.send_msg("WindPy not ready")
 
 
+def lastday_worker(today: dt.date | dt.datetime):
+    wind_logger = get_logger("wind")
+    out_dir = "wind-etf-bar1d"
+    os.makedirs(out_dir, exist_ok=True)
+    lastday = today - dt.timedelta(days=1)
+    lastday_str = lastday.strftime("%Y-%m-%d")
+
+    wind_logger.info(f"begin wind task {lastday_str}")
+    chatbot.send_msg(f"begin wind task {lastday_str}")
+
+    if wind_ready():
+        etf_list = get_etf_list(lastday_str)
+        wind_logger.info(f"etf length={len(etf_list)} at {lastday_str}")
+        df_list = []
+        for code in etf_list:
+            wind_logger.debug(f"begin download {code}")
+            wind_data = download(code, lastday_str, lastday_str)
+            df = process_data(wind_data)
+            df_list.append(df)
+            wind_logger.debug(f"finish download {code}")
+
+        if len(df_list) > 0:
+            pl.concat(df_list).write_ipc(f"{out_dir}/{lastday_str}.ipc", compression="zstd")
+
+        wind_logger.info(f"finish wind task {lastday_str}")
+        chatbot.send_msg(f"finish wind task {lastday_str}")
+    else:
+        # print("WindPy not ready")
+        chatbot.send_msg("WindPy not ready")
+
+
 if __name__ == "__main__":
-    job_worker(today=dt.date.today())
+    # job_worker(today=dt.date.today())
+    lastday_worker(today=dt.date.today())
     # job_worker(today=dt.date(2024, 6, 15))
