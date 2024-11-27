@@ -51,5 +51,24 @@ def send_msg(msg: str):
     print("企业微信Response:", jData)
 
 
+def upload_file(filename: str):
+    abs_cfg_file = os.path.join(os.path.dirname(__file__), "chatbot.json")
+    CHATBOT_CONFIG = read_config(abs_cfg_file)
+    with open(filename, "rb") as file:
+        file_data = {"media": (file.name, file, "application/octet-stream")}
+        with requests.post(CHATBOT_CONFIG["test"]["UPLOAD_URL"], files=file_data) as response:
+            j_data = response.json()
+        if j_data["errcode"] == 0:
+            print("upload success")
+            media_id = j_data["media_id"]
+            post_data = {"msgtype": "file", "file": {"media_id": media_id}}
+            with requests.post(CHATBOT_CONFIG["test"]["CHATBOT_URL"], json=post_data) as response:
+                jData = response.json()
+            print("企业微信Response:", jData)
+        else:
+            print("upload failed")
+
+
 if __name__ == "__main__":
-    send_msg("hello")
+    # send_msg("hello")
+    upload_file("test.data")
