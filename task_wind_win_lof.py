@@ -65,6 +65,7 @@ def process_data(data) -> pl.DataFrame:
                 "turnover": pl.Float64,
                 "discount": pl.Float64,
                 "adjfactor": pl.Float64,
+                "trades_count": pl.Float64,
             },
         )
         .fill_nan(None)
@@ -82,12 +83,13 @@ def process_data(data) -> pl.DataFrame:
             "turnover",
             ((pl.col("close") - pl.col("discount")) * 1e4).round(0).cast(pl.UInt32).alias("netvalue"),
             "adjfactor",
+            pl.col("trades_count").cast(pl.UInt32),
         )
     )
 
 
 def download(code: str, start_date: str, end_date: str):
-    cols = ["pre_close", "open", "high", "low", "close", "volume", "amt", "turn", "discount", "adjfactor"]
+    cols = ["pre_close", "open", "high", "low", "close", "volume", "amt", "turn", "discount", "adjfactor", "dealnum"]
     return w.wsd(code, fields=cols, beginTime=start_date, endTime=end_date)
 
 
@@ -151,7 +153,7 @@ def lastday_worker(today: dt.date | dt.datetime):
             wind_logger.debug(f"finish download {code}")
 
         if len(df_list) > 0:
-            pl.concat(df_list).write_ipc(f"{out_dir}/{lastday_str}.ipc", compression="zstd")
+            pl.concat(df_list).write_ipc(f"{out_dir}/lof{lastday_str}.ipc", compression="zstd")
 
         wind_logger.info(f"finish wind task {lastday_str}")
         chatbot.send_msg(f"finish wind task {lastday_str}")
