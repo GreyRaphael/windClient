@@ -108,7 +108,6 @@ def job_worker(today: dt.date | dt.datetime):
     week_days = collect_trade_days(today)
 
     wind_logger.info(f"begin wind task {week_days[0]}~{week_days[-1]}")
-    chatbot.send_msg(f"begin wind task {week_days[0]}~{week_days[-1]}")
 
     if wind_ready():
         etf_list = get_etf_list(today_str)
@@ -139,7 +138,6 @@ def lastday_worker(today: dt.date | dt.datetime):
     lastday_str = lastday.strftime("%Y-%m-%d")
 
     wind_logger.info(f"begin wind task {lastday_str}")
-    chatbot.send_msg(f"begin wind task {lastday_str}")
 
     if wind_ready():
         etf_list = get_etf_list(lastday_str)
