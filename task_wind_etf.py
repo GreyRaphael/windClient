@@ -11,7 +11,7 @@ def get_logger(name: str, level=logging.DEBUG, fmt="%(asctime)s - %(levelname)s 
     logger.setLevel(level)
 
     os.makedirs("log", exist_ok=True)
-    file_handler = logging.FileHandler(f'log/{dt.datetime.now().strftime("%Y%m%d-%H%M")}_{name}.log')
+    file_handler = logging.FileHandler(f"log/{dt.datetime.now().strftime('%Y%m%d-%H%M')}_{name}.log")
     formatter = logging.Formatter(fmt)
     file_handler.setFormatter(formatter)
 
@@ -62,10 +62,9 @@ def process_data(data) -> pl.DataFrame:
                 "close": pl.Float64,
                 "volume": pl.Float64,
                 "amount": pl.Float64,
-                "turnover": pl.Float64,
-                "discount": pl.Float64,
                 "adjfactor": pl.Float64,
-                "trades_count": pl.Float64,
+                "netvalue": pl.Float64,
+                "unit_total": pl.Float64,
             },
         )
         .fill_nan(None)
@@ -80,16 +79,15 @@ def process_data(data) -> pl.DataFrame:
             (pl.col("close") * 1e4).round(0).cast(pl.UInt32),
             pl.col("volume").fill_null(0).cast(pl.UInt64),
             (pl.col("amount") * 1e4).round(0).fill_null(0).cast(pl.UInt64),
-            "turnover",
-            ((pl.col("close") - pl.col("discount")) * 1e4).round(0).cast(pl.UInt32).alias("netvalue"),
             "adjfactor",
-            pl.col("trades_count").cast(pl.UInt32),
+            (pl.col("netvalue") * 1e4).round(0).cast(pl.UInt32),
+            pl.col("unit_total").round(0).cast(pl.UInt64),
         )
     )
 
 
 def download(code: str, start_date: str, end_date: str):
-    cols = ["pre_close", "open", "high", "low", "close", "volume", "amt", "turn", "discount", "adjfactor", "dealnum"]
+    cols = ["pre_close", "open", "high", "low", "close", "volume", "amt", "adjfactor", "nav", "unit_total"]
     return w.wsd(code, fields=cols, beginTime=start_date, endTime=end_date)
 
 
