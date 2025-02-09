@@ -7,7 +7,7 @@ import glob
 
 
 def extract_quote(indir: str, aiquant_file: str):
-    # read from wind csv files: code, dt, close, turnover
+    # read from wind csv files: code, dt, close, turnover, netvalue
     df_wind = (
         pl.concat(
             [
@@ -19,18 +19,21 @@ def extract_quote(indir: str, aiquant_file: str):
                         "日期",
                         "收盘价(元)",
                         "换手率(%)",
+                        "单位净值(元)",
                     ],
                     schema_overrides={
                         "代码": pl.Utf8,
                         "日期": pl.Date,
                         "收盘价(元)": pl.Float64,
                         "换手率(%)": pl.Float64,
+                        "单位净值(元)": pl.Float64,
                     },
                     new_columns=[
                         "code",
                         "dt",
                         "close",
                         "turnover",
+                        "netvalue",
                     ],
                 )
                 for filename in glob.glob(f"{indir}/*")
@@ -39,6 +42,7 @@ def extract_quote(indir: str, aiquant_file: str):
         .with_columns(
             pl.col("code").str.slice(0, 6).cast(pl.UInt32),
             (pl.col("close") * 1e4).round(0).cast(pl.UInt32),
+            (pl.col("netvalue") * 1e4).round(0).cast(pl.UInt32),
         )
         .sort(by=["code", "dt"])
     )
@@ -48,7 +52,7 @@ def extract_quote(indir: str, aiquant_file: str):
     df = (
         df_aiquant.join(df_wind, on=["code", "dt", "close"])
         .with_columns(
-            (pl.col("volume") / pl.col("turnover")).alias("preunit"),
+            (pl.col("volume") / pl.col("turnover") * 1e2).alias("preunit"),
         )
         .with_columns(
             pl.when(pl.col("preunit").is_infinite()).then(None).otherwise("preunit").alias("preunit"),
