@@ -72,7 +72,13 @@ def extract_single(wind_single: str, aiquant_single: str):
     df_ai = pl.read_ipc(aiquant_single)
     target_dt = df_ai.item(-1, 1)
     df_wind = (
-        pl.read_csv(wind_single, separator="\t", infer_schema_length=1000, new_columns=["code", "name", "close", "turnover", "netvalue"])
+        pl.read_csv(
+            wind_single,
+            separator="\t",
+            infer_schema_length=1000,
+            schema_overrides={"换手率[交易日期] 最新收盘日[单位] %": pl.Utf8},
+            new_columns=["code", "name", "close", "turnover", "netvalue"],
+        )
         .filter(pl.col("close").is_not_null())
         .with_columns(
             pl.col("turnover").str.replace_all(",", "").cast(pl.Float64),
