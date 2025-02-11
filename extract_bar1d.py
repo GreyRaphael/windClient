@@ -4,8 +4,7 @@ import glob
 import datetime as dt
 
 
-# 使用wind行情序列仅仅导出"换手率"，其他字段均由aiquant导出
-# 使用wind导出的时候，不要选择复权净值
+# 使用wind行情序列仅仅导出"换手率"和"单位净值"，其他字段均由aiquant导出
 def extract_quotes(indir: str, aiquant_file: str):
     # read from wind csv files: code, dt, close, turnover, netvalue
     df_wind = (
@@ -49,19 +48,7 @@ def extract_quotes(indir: str, aiquant_file: str):
     # read from aiquant: code, dt, preclose, open, high, low, close, volume, amount, trades_count, adjfactor
     df_aiquant = pl.read_ipc(aiquant_file)
     # join data & turnover -> preunit
-    df = (
-        df_aiquant.join(df_wind, on=["code", "dt", "close"])
-        .with_columns(
-            (pl.col("volume") / pl.col("turnover") * 1e2).alias("preunit"),
-        )
-        .with_columns(
-            pl.when(pl.col("preunit").is_infinite()).then(None).otherwise("preunit").alias("preunit"),
-        )
-        .with_columns(
-            pl.col("preunit").fill_null(strategy="forward").over("code").round(0).cast(pl.UInt64),
-        )
-        .select(pl.exclude("turnover"))
-    )
+    df = df_aiquant.join(df_wind, on=["code", "dt", "close"])
     last_dt = df.item(-1, 1)
     df.write_ipc(f"etf-bar1d-until-{last_dt}.ipc", compression="zstd")
 
