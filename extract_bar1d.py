@@ -1,7 +1,6 @@
 import polars as pl
 import argparse
 import glob
-import datetime as dt
 
 
 # 使用wind行情序列仅仅导出"换手率"和"单位净值"，其他字段均由aiquant导出
@@ -48,7 +47,7 @@ def extract_quotes(indir: str, aiquant_file: str):
     # read from aiquant: code, dt, preclose, open, high, low, close, volume, amount, trades_count, adjfactor
     df_aiquant = pl.read_ipc(aiquant_file)
     # join data & turnover -> preunit
-    df = df_aiquant.join(df_wind, on=["code", "dt", "close"])
+    df = df_aiquant.join(df_wind, on=["code", "dt", "close"]).with_columns(pl.when(pl.col("volume") == 0).then(0).otherwise("turnover").alias("turnover"))
     last_dt = df.item(-1, 1)
     df.write_ipc(f"etf-bar1d-until-{last_dt}.ipc", compression="zstd")
 
