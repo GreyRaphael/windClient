@@ -12,13 +12,13 @@ def extract_units(indir: str):
             .drop_nulls()
             .select(
                 pl.col("日期").cast(pl.Date).alias("dt"),
-                pl.nth(1).cast(pl.UInt64).alias("unit"),
+                pl.nth(1).cast(pl.Float64).alias("unit"),
                 pl.lit(int(code)).cast(pl.UInt32).alias("code"),
             )
         )
         dfs.append(df)
     df_units = pl.concat(dfs).sort(["code", "dt"])
-    df_units.write_ipc("wind_units.ipc", compression="zstd")
+    df_units.write_ipc("wind_tot_units.ipc", compression="zstd")
 
 
 if __name__ == "__main__":
