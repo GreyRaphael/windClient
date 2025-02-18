@@ -10,6 +10,10 @@ for pair_first, pair_second in combinations(df_data.columns[1:], 2):
     df = (
         df_data.select(pair_first, pair_second)
         .drop_nulls()
+        .with_columns(
+            pl.col(pair_first).pct_change(n=1),
+            pl.col(pair_second).pct_change(n=1),
+        )
         .select(
             pl.lit(pair_first).alias("first"),
             pl.lit(pair_second).alias("second"),
