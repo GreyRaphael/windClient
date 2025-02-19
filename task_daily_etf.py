@@ -14,8 +14,9 @@ def wsd_download_daily(codes: list[str], start_dt: dt.date, end_dt: dt.date):
     for code in codes:
         record = w.wsd(code, "unit_floortrading,nav", start_dt, end_dt, "unit=1")
         if record.ErrorCode == 0:
+            length = len(record.Times)
             df = pl.from_records(
-                [record.Codes] + [record.Times] + record.Data,
+                [record.Codes * length] + [record.Times] + record.Data,
                 schema={"code": pl.Utf8, "dt": pl.Date, "unit": pl.Float64, "netvalue": pl.Float64},
             ).with_columns(
                 pl.col("code").str.slice(0, 6).cast(pl.UInt32),
@@ -40,8 +41,9 @@ def wsd_download_unit(codes: list[str], start_dt: dt.date, end_dt: dt.date):
     for code in codes:
         record = w.wsd(code, "unit_floortrading", start_dt, end_dt, "unit=1")
         if record.ErrorCode == 0:
+            length = len(record.Times)
             df = pl.from_records(
-                [record.Codes] + [record.Times] + record.Data,
+                [record.Codes * length] + [record.Times] + record.Data,
                 schema={"code": pl.Utf8, "dt": pl.Date, "unit": pl.Float64},
             ).with_columns(
                 pl.col("code").str.slice(0, 6).cast(pl.UInt32),
