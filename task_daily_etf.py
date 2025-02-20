@@ -17,7 +17,7 @@ def wsd_download_daily(codes: list[str], start_dt: dt.date, end_dt: dt.date):
             length = len(record.Times)
             df = pl.from_records(
                 [record.Codes * length] + [record.Times] + record.Data,
-                schema={"code": pl.Utf8, "dt": pl.Date, "unit": pl.Float64, "netvalue": pl.Float64},
+                schema={"code": pl.Utf8, "dt": pl.Date, "float_unit": pl.Float64, "netvalue": pl.Float64},
             ).with_columns(
                 pl.col("code").str.slice(0, 6).cast(pl.UInt32),
                 (pl.col("netvalue") * 1e4).round().cast(pl.UInt32),
@@ -31,7 +31,7 @@ def wsd_download_daily(codes: list[str], start_dt: dt.date, end_dt: dt.date):
         with open(f"failed_{start_dt}_{end_dt}.json", "w") as file:
             json.dump(codes_failed, file)
 
-    return pl.concat(dfs)
+    return pl.concat(dfs).sort(["code", "dt"])
 
 
 def wsd_download_unit(codes: list[str], start_dt: dt.date, end_dt: dt.date):
@@ -44,7 +44,7 @@ def wsd_download_unit(codes: list[str], start_dt: dt.date, end_dt: dt.date):
             length = len(record.Times)
             df = pl.from_records(
                 [record.Codes * length] + [record.Times] + record.Data,
-                schema={"code": pl.Utf8, "dt": pl.Date, "unit": pl.Float64},
+                schema={"code": pl.Utf8, "dt": pl.Date, "float_unit": pl.Float64},
             ).with_columns(
                 pl.col("code").str.slice(0, 6).cast(pl.UInt32),
             )
@@ -57,7 +57,7 @@ def wsd_download_unit(codes: list[str], start_dt: dt.date, end_dt: dt.date):
         with open(f"failed_{start_dt}_{end_dt}.json", "w") as file:
             json.dump(codes_failed, file)
 
-    return pl.concat(dfs)
+    return pl.concat(dfs).sort(["code", "dt"])
 
 
 if __name__ == "__main__":
