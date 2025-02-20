@@ -4,6 +4,7 @@ import polars as pl
 
 # 1.从wind"数据浏览器"选择etf_info
 # 2.然后选择"基金/内地公募基金/基金市场类/基金市场类(净值)/上市基金/ETF基金(含未成立、已到期)"应用到模板
+# 2.然后选择"基金/内地公募基金/基金市场类/中国上市ETF/跨境ETF"应用到模板
 # 3.全选并复制到剪切板
 def extract_info(target_dt: dt.date):
     df = (
@@ -55,9 +56,9 @@ def extract_info(target_dt: dt.date):
         )
         .sort(["tracking", "fees", "listdate"])
     )
-    df.write_ipc("etf_info.ipc")
-    df.write_csv("etf_info.csv")
-    print("dump etf_info.ipc & etf_info.csv")
+    df.write_ipc(f"etf_info_{target_dt}.ipc")
+    df.write_csv(f"etf_info_{target_dt}.csv")
+    print("dump etf_info_xxxx.ipc & etf_info_xxxx.csv")
 
 
 if __name__ == "__main__":
