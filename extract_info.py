@@ -1,23 +1,43 @@
-import argparse
+import datetime as dt
 import polars as pl
 
 
-# 从wind"数据浏览器"导出etf_info模板的数据,粘贴即可，然后进行处理
-def extract_info(infile: str):
+# 1.从wind"数据浏览器"选择etf_info
+# 2.然后选择"基金/内地公募基金/基金市场类/基金市场类(净值)/上市基金/ETF基金(含未成立、已到期)"应用到模板
+# 3.全选并复制到剪切板
+def extract_info(target_dt: dt.date):
     df = (
-        pl.read_csv(infile, separator="\t")
-        .filter(pl.col("跟踪指数代码").is_not_null())
-        .filter(pl.col("上市日期").is_not_null())
-        .select(
-            pl.col("证券代码").str.slice(0, 6).cast(pl.UInt32).alias("code"),
-            pl.col("证券简称").alias("name"),
-            pl.col("跟踪指数代码").alias("tracking"),
-            pl.col("投资类型(二级分类)").alias("type"),
-            (pl.col("管理费率[单位] %") + pl.col("托管费率[单位] %")).alias("fees"),
-            pl.col("上市日期").cast(pl.Date).alias("listdate"),
-            pl.col("基金到期日").cast(pl.Date).alias("maturitydate"),
+        pl.read_clipboard(
+            separator="\t",
+            try_parse_dates=True,
+            columns=[
+                "证券代码",
+                "证券简称",
+                "跟踪指数代码",
+                "投资类型(二级分类)",
+                "管理费率[单位] %",
+                "托管费率[单位] %",
+                "上市日期",
+                "基金到期日",
+            ],
+            new_columns=[
+                "code",
+                "name",
+                "tracking",
+                "type",
+                "mer",
+                "cer",
+                "listdate",
+                "maturitydate",
+            ],
         )
-        .with_columns(
+        .filter(pl.col("listdate").is_not_null())
+        .filter(pl.col("listdate") <= target_dt)
+        .filter(pl.col("type") != "货币市场型基金")
+        .select(
+            pl.col("code").str.slice(0, 6).cast(pl.UInt32),
+            "name",
+            pl.col("tracking").str.to_uppercase(),
             pl.when(pl.col("type") == "商品型基金")
             .then(pl.lit("commodity"))
             .when(pl.col("type") == "国际(QDII)股票型基金")
@@ -28,7 +48,10 @@ def extract_info(infile: str):
             .then(pl.lit("index"))
             .when(pl.col("type") == "被动指数型债券基金")
             .then(pl.lit("bond"))
-            .alias("type")
+            .alias("type"),
+            (pl.col("mer") + pl.col("cer")).round(2).alias("fees"),
+            "listdate",
+            "maturitydate",
         )
         .sort(["tracking", "fees", "listdate"])
     )
@@ -38,7 +61,5 @@ def extract_info(infile: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="提取wind数据浏览器中的etf_info")
-    parser.add_argument("-wi", type=str, required=True, help="粘贴数据之后的csv, like wind_info.csv")
-    args = parser.parse_args()
-    extract_info(args.wi)
+    target_dt = dt.date.today()
+    extract_info(target_dt)
