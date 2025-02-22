@@ -50,7 +50,8 @@ def send_msg(msg: str):
             jData = response.json()
     print("企业微信Response:", jData)
 
-
+# can only be applicable in outer network
+# cannot be used in inner network
 def upload_file(filename: str):
     abs_cfg_file = os.path.join(os.path.dirname(__file__), "chatbot.json")
     CHATBOT_CONFIG = read_config(abs_cfg_file)
