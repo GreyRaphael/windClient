@@ -6,14 +6,13 @@ import polars as pl
 # 2.然后选择"基金/内地公募基金/基金市场类/基金市场类(净值)/上市基金/ETF基金(含未成立、已到期)"应用到模板
 # 2.然后选择"基金/内地公募基金/基金市场类/中国上市ETF/跨境ETF"应用到模板
 # 3.全选并复制到剪切板
-def get_from_clipboard(target_dt: dt.date = dt.date.today()):
+def get_from_clipboard(target_dt: dt.date = dt.date.today(), output_name: str = "etf_info.csv"):
     df = (
         pl.read_clipboard(
             separator="\t",
-            try_parse_dates=True,
             columns=[
                 "证券代码",
-                "证券简称",
+                "基金简称",
                 "跟踪指数代码",
                 "投资类型(二级分类)",
                 "管理费率[单位] %",
@@ -21,6 +20,16 @@ def get_from_clipboard(target_dt: dt.date = dt.date.today()):
                 "上市日期",
                 "基金到期日",
             ],
+            schema_overrides={
+                "证券代码": pl.Utf8,
+                "基金简称": pl.Utf8,
+                "跟踪指数代码": pl.Utf8,
+                "投资类型(二级分类)": pl.Utf8,
+                "管理费率[单位] %": pl.Float64,
+                "托管费率[单位] %": pl.Float64,
+                "上市日期": pl.Date,
+                "基金到期日": pl.Date,
+            },
             new_columns=[
                 "code",
                 "name",
@@ -56,10 +65,11 @@ def get_from_clipboard(target_dt: dt.date = dt.date.today()):
         )
         .sort(["tracking", "fees", "listdate"])
     )
-    df.write_csv("etf_info.csv")
-    print("dump etf_info.csv")
+    df.write_csv(output_name)
+    print(f"dump {output_name}")
 
 
+# can only be "ETF基金(含未成立、已到期)"
 def get_from_api(target_dt: dt.date = dt.date.today()):
     import json
     from WindPy import w
@@ -112,4 +122,5 @@ def get_from_api(target_dt: dt.date = dt.date.today()):
 
 
 if __name__ == "__main__":
-    get_from_api()
+    # get_from_api()
+    get_from_clipboard(output_name="oversea_info.csv")
