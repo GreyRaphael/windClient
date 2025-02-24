@@ -21,14 +21,15 @@ def download_from_wind(codes: list[str], target_dt: dt.date):
                 "high": pl.Float64,
                 "low": pl.Float64,
                 "close": pl.Float64,
-                "volume": pl.UInt64,
+                "volume": pl.Float64,
                 "amount": pl.Float64,
-                "trades_count": pl.UInt32,
+                "trades_count": pl.Float64,
                 "adjfactor": pl.Float64,
                 "netvalue": pl.Float64,
                 "float_unit": pl.Float64,
             },
         )
+        .with_columns(pl.col("volume").round(0).cast(pl.UInt64))
         .select(
             pl.col("code").str.slice(0, 6).cast(pl.UInt32),
             pl.lit(target_dt).alias("dt"),
@@ -39,7 +40,7 @@ def download_from_wind(codes: list[str], target_dt: dt.date):
             (pl.col("close") * 1e4).round(0).cast(pl.UInt32),
             "volume",
             (pl.col("amount") * 1e4).round(0).cast(pl.UInt64),
-            pl.when(pl.col("volume") == 0).then(0).otherwise("trades_count").alias("trades_count"),
+            pl.when(pl.col("volume") == 0).then(0).otherwise("trades_count").cast(pl.UInt32).alias("trades_count"),
             "adjfactor",
             (pl.col("netvalue") * 1e4).round(0).cast(pl.UInt32),
             "float_unit",
@@ -65,7 +66,7 @@ def worker(target_dt: dt.date):
             .filter(pl.col("type") != "货币市场型基金")
             .filter(pl.col("listdate").dt.year() > 1900)
             .filter(pl.col("listdate").dt.date() <= target_dt)
-            .filter(pl.col("maturitydate").is_null() | (pl.col("maturitydate") <= target_dt))
+            .filter(pl.col("maturitydate").is_null() | (pl.col("maturitydate") >= target_dt))
         )
 
         code_strs = df["code"].to_list()  # use less codes
@@ -79,5 +80,6 @@ def worker(target_dt: dt.date):
 
 
 if __name__ == "__main__":
-    target_dt = dt.date.today() - dt.timedelta(days=1)
+    # target_dt = dt.date.today() - dt.timedelta(days=1)
+    target_dt = dt.date(2025, 2, 21)
     worker(target_dt)
