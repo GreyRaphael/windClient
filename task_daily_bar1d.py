@@ -29,7 +29,10 @@ def download_from_wind(codes: list[str], target_dt: dt.date):
                 "float_unit": pl.Float64,
             },
         )
-        .with_columns(pl.col("volume").round(0).cast(pl.UInt64))
+        .with_columns(
+            pl.col("volume").fill_null(0).cast(pl.UInt64),
+            (pl.col("amount") * 1e4).round(0).fill_null(0).cast(pl.UInt64),
+        )
         .select(
             pl.col("code").str.slice(0, 6).cast(pl.UInt32),
             pl.lit(target_dt).alias("dt"),
@@ -39,7 +42,7 @@ def download_from_wind(codes: list[str], target_dt: dt.date):
             (pl.col("low") * 1e4).round(0).cast(pl.UInt32),
             (pl.col("close") * 1e4).round(0).cast(pl.UInt32),
             "volume",
-            (pl.col("amount") * 1e4).round(0).cast(pl.UInt64),
+            "amount",
             pl.when(pl.col("volume") == 0).then(0).otherwise("trades_count").cast(pl.UInt32).alias("trades_count"),
             "adjfactor",
             (pl.col("netvalue") * 1e4).round(0).cast(pl.UInt32),
