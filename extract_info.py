@@ -113,7 +113,7 @@ def get_from_api(target_dt: dt.date = dt.date.today()):
             (pl.col("mer") + pl.col("cer")).round(2).alias("fees"),
             pl.col("listdate").dt.date(),
             pl.col("maturitydate").str.to_date(),
-        ).sort(["tracking", "fees", "listdate"])
+        ).sort(["listdate", "tracking", "fees"])
         dfx.write_csv("etf_info.csv")
         print("dump info to etf_info.csv")
 
