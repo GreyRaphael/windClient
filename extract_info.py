@@ -79,8 +79,8 @@ def get_from_api(target_dt: dt.date = dt.date.today()):
         # 未成立+已到期: 1000051239000000
         codes_response = w.wset("sectorconstituent", f"date={target_dt};sectorid=1000051239000000;field=wind_code")
         # response.Data likst [['159001.OF', '159003.OF', '561200.OF',]]
-        codes = codes_response.Data[0]
-        info_data = w.wss(",".join(codes), "fund_info_name,fund_trackindexcode,fund_investtype,fund_managementfeeratio,fund_custodianfeeratio,ipo_date,fund_maturitydate_2")
+        codes_str = ",".join(codes_response.Data[0])
+        info_data = w.wss(codes_str, "fund_info_name,fund_trackindexcode,fund_investtype,fund_managementfeeratio,fund_custodianfeeratio,ipo_date,fund_maturitydate_2")
         df = (
             pl.from_records(
                 [info_data.Codes] + info_data.Data,
@@ -122,5 +122,5 @@ def get_from_api(target_dt: dt.date = dt.date.today()):
 
 
 if __name__ == "__main__":
-    # get_from_api()
-    get_from_clipboard(output_name="oversea_info.csv")
+    get_from_api()
+    # get_from_clipboard(output_name="oversea_info.csv")
